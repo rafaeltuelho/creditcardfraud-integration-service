@@ -3,6 +3,7 @@
 .settings
 .factorypath
 .vscode
+.DS_Store
 *.iml
 dependency-reduced-pom.xml
 bin/
