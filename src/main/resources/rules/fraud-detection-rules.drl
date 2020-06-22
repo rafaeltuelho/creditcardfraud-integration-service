@@ -27,6 +27,9 @@ when
 then
 	System.out.println("\nFound 4 or more cc transactions in last 15 minutes of current transaction");
 	System.out.println("And within that collection, there are 2 transactions within 10 seconds of each other.\n");
+	System.out.println("\tct1: " + $c1);
+	System.out.println("\tct2: " + $c2);
+	
 	PotentialFraudFact potentialFraud = new PotentialFraudFact();
 	potentialFraud.setTransactions(new java.util.ArrayList());
 	potentialFraud.setCreditCardNumber($c1.getCreditCardNumber());

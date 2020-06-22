@@ -51,12 +51,12 @@
     </plugins>
   </build>
   <properties>
-    <version.commons.lang>2.6</version.commons.lang>
-    <version.org.kie>7.8.0.Final</version.org.kie>
-    <version.org.slf4j>1.7.25</version.org.slf4j>
     <version.ch.qos.logback>1.1.0</version.ch.qos.logback>
-    <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <version.org.slf4j>1.7.25</version.org.slf4j>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <version.commons.lang>2.6</version.commons.lang>
+    <version.org.kie>7.33.0.Final-redhat-00003</version.org.kie>
   </properties>
 </project>
 
