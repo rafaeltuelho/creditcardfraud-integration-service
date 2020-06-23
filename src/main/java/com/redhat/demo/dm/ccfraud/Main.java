@@ -56,7 +56,7 @@ public class Main {
     public static void exampleCreateConsumerJava(Vertx vertx) {
         // creating the consumer using properties config
         Properties config = new Properties();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, System.getProperty("kafka.cluster.url", "kafka.kafka-cluster.svc:9092"));
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, System.getProperty("kafka.cluster.url", "my-cluster-kafka-brokers:9092"));
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, System.getProperty("kafka.cluster.group.id", "test"));
