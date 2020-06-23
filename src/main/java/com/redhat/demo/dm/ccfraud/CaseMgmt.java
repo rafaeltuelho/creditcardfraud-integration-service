@@ -22,7 +22,7 @@ public class CaseMgmt {
             String processDefinitionId = System.getProperty("process.definition.id", "src.fraudWorkflow");
             String authBase64Encoded = System.getProperty("kie.server.auth.token", "src.fraudWorkflow");
 
-            URL url = new URL(kieServerUrl +
+            URL url = new URL("http://" + kieServerUrl +
                     "/services/rest/server/containers/" + kieContainer + 
                     "/processes/" + processDefinitionId +
                     "/instances");
