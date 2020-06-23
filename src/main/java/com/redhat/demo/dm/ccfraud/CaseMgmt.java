@@ -3,6 +3,9 @@ package com.redhat.demo.dm.ccfraud;
 import com.google.gson.Gson;
 import com.redhat.demo.dm.ccfraud.domain.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -10,6 +13,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class CaseMgmt {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CaseMgmt.class);
 
     public void invokeCase(PotentialFraudFact potentialFraudFact) {
         try {
@@ -23,12 +27,15 @@ public class CaseMgmt {
                     "/processes/" + processDefinitionId +
                     "/instances");
             
+            LOGGER.info("Kieserver URL for Case management: " + url.toString());
+
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Authorization","Basic " + authBase64Encoded);
 
+            LOGGER.info("Kieserver connection: " + conn.toString());
             PotentialFraudFactCaseFile potentialFraudFactCaseFile = 
              new PotentialFraudFactCaseFile(
                  String.valueOf(potentialFraudFact.getCreditCardNumber()),potentialFraudFact.getTransactions().toString());
