@@ -16,6 +16,8 @@ public class CaseMgmt {
     private static final Logger LOGGER = LoggerFactory.getLogger(CaseMgmt.class);
 
     public void invokeCase(PotentialFraudFact potentialFraudFact) {
+        LOGGER.info("Calling kie server to open a new case instance...");
+
         try {
             String kieServerUrl = System.getProperty("kie.server.url", "cat-pam-kieserver:8080");
             String kieContainer = System.getProperty("kie.container.id", "test-case-project_1.0.0");
