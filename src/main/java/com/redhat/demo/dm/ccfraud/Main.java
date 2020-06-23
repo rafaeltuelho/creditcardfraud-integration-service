@@ -20,6 +20,8 @@ import com.redhat.demo.dm.ccfraud.domain.PotentialFraudFact;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.kie.api.KieServices;
+import org.kie.api.builder.KieScanner;
+import org.kie.api.builder.ReleaseId;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.EntryPoint;
@@ -35,28 +37,40 @@ import io.vertx.kafka.client.consumer.KafkaConsumer;
 public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd:HHmmssSSS");
-    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss:SSS", Locale.US);
+    private static final DateTimeFormatter DATE_TIME_FORMAT = 
+        DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss:SSS", Locale.US);
 
     private static Vertx vertx = Vertx.vertx();
-    private static KieContainer kieContainer;
+    private static KieContainer kContainer;
     private static CreditCardTransactionRepository cctRepository = new InMemoryCreditCardTransactionRepository();
 
     public static void main(String args[]) {
-        KieServices KIE_SERVICES = KieServices.Factory.get();
-        LOGGER.info("KIE_SERVICES" + KIE_SERVICES);
+        String groupId = System.getProperty("rulesGroupId", "org.acme");
+        String artifactId = System.getProperty("rulesArtifactId", "rules");
+        String releaseVersion = System.getProperty("rulesReleaseVersion", "1.0.0-SNAPSHOT");
+        String kieScannerInterval = System.getProperty("kieScannerInterval", "10000");
+
+        KieServices kieServices = KieServices.Factory.get();
+        ReleaseId releaseId = kieServices.newReleaseId(groupId, artifactId, releaseVersion);
+        kContainer = kieServices.newKieContainer( releaseId );
+        KieScanner kScanner = kieServices.newKieScanner( kContainer );
+        
+        // Start the KieScanner polling the Maven repository every 10 seconds
+        LOGGER.info(" ===>>> Initialize kScanner and configure to pull rules artifact every {}ms <<<===", kieScannerInterval);
+        LOGGER.info("\t maven artifact GAV: [ {}, {}, {} ]", groupId, artifactId, releaseId);
+        kScanner.start( Long.valueOf(kieScannerInterval) );
 
         // Load the Drools KIE-Container.
-        kieContainer = KIE_SERVICES.newKieClasspathContainer();
+        // kieContainer = kieServices.newKieClasspathContainer();
         Main creditCardFraudVerticle = new Main();
-
         creditCardFraudVerticle.exampleCreateConsumerJava(vertx);
     }
 
-    public static void exampleCreateConsumerJava(Vertx vertx) {
+    public void exampleCreateConsumerJava(Vertx vertx) {
         // creating the consumer using properties config
         Properties config = new Properties();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, System.getProperty("kafka.cluster.url", "my-cluster-kafka-brokers:9092"));
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, 
+            System.getProperty("kafka.cluster.url", "my-cluster-kafka-brokers:9092"));
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, System.getProperty("kafka.cluster.group.id", "test"));
@@ -67,7 +81,6 @@ public class Main {
         // subscribe to several topics
         Set<String> topics = new HashSet<>();
         topics.add("events");
-
         consumer.subscribe(topics);
 
         // or just subscribe to a single topic
@@ -82,29 +95,10 @@ public class Main {
         consumer.handler(record -> {
             LOGGER.info("New event received!");
             LOGGER.info(new Gson().fromJson(record.value(), CreditCardTransaction.class).toString());
+
             CreditCardTransaction creditCardTransaction = new Gson().fromJson(record.value(),
                     CreditCardTransaction.class);
             processTransaction(creditCardTransaction);
-
-        });
-    }
-
-    private static void invokeCase(PotentialFraudFact potentialFraudFact) {
-        vertx.<String>executeBlocking(future -> {
-            try {
-                CaseMgmt caseMgmt = new CaseMgmt();
-                caseMgmt.invokeCase(potentialFraudFact);
-
-            } catch (Exception e) {
-                LOGGER.error("Business central not yet ready...");
-            }
-
-        }, res -> {
-
-            if (res.succeeded()) {
-
-                LOGGER.info(res.toString());
-            }
         });
     }
 
@@ -114,22 +108,33 @@ public class Main {
                 .getCreditCardTransactionsForCC(ccTransaction.getCreditCardNumber());
 
         if (ccTransactions == null) {
+            LOGGER.info("no previous transactions found for Credit Card {}", ccTransaction.getCreditCardNumber());
             return;
         }
 
-		LOGGER.info("Found '" + ccTransactions.size() + "' transactions for creditcard: '" + ccTransaction.getCreditCardNumber() + "'.");
+        LOGGER.info("Found '" + ccTransactions.size() + 
+            "' transactions for creditcard: '" + ccTransaction.getCreditCardNumber() + "'.");
 
-        KieSession kieSession = kieContainer.newKieSession();
+        //will get automatically upgraded by the KieScanner if new version is found in the Maven Repo
+        KieSession kieSession = kContainer.newKieSession();
+        LOGGER.info("Get the kie session [ {} ]", kieSession.getIdentifier());
+
         // Insert transaction history/context.
-        LOGGER.info("Inserting credit-card transaction context into session.");
+        LOGGER.info("Inserting previous (recent) credit card transactions into session.");
         for (CreditCardTransaction nextTransaction : ccTransactions) {
             insert(kieSession, "Transactions", nextTransaction);
         }
+
         // Insert the new transaction event
-        LOGGER.info("Inserting credit-card transaction event into session.");
+        LOGGER.info(" ");
+        LOGGER.info("Inserting credit card transaction event into session.");
         insert(kieSession, "Transactions", ccTransaction);
-        // And fire the com.redhat.demo.dm.com.redhat.demo.dm.ccfraud.rules.
-        kieSession.fireAllRules();
+
+        // And fire the rules.
+        LOGGER.info("Firing the rules with {} Facts in the Session [ {} ] WM", 
+            kieSession.getFactCount(), kieSession.getIdentifier());
+        int fired = kieSession.fireAllRules();
+        LOGGER.info("{} rules got fired!", fired);
 
         Collection<?> fraudResponse = kieSession.getObjects();
 
@@ -164,20 +169,24 @@ public class Main {
 			String errorMessage = "This fact inserter can only be used with KieSessions that use a SessionPseudoClock";
 			LOGGER.error(errorMessage);
 			throw new IllegalStateException(errorMessage);
-		}
+        }
+        
 		SessionPseudoClock pseudoClock = (SessionPseudoClock) clock;
-		LOGGER.info( "\tCEP Engine PseudoClock current time: " + LocalDateTime.ofInstant(Instant.ofEpochMilli(pseudoClock.getCurrentTime()), ZoneId.systemDefault()).toString() );
+        LOGGER.info( "\tCEP Engine PseudoClock current time: " + 
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(pseudoClock.getCurrentTime()), ZoneId.systemDefault()).toString() );
 		EntryPoint ep = kieSession.getEntryPoint(stream);
 
 		// First insert the event
 		FactHandle factHandle = ep.insert(cct);
 		// And then advance the clock.
 		LOGGER.info(" ");
-		LOGGER.info("Inserting credit-card [" + cct.getCreditCardNumber() + "] transaction [" + cct.getTransactionNumber() + "] context into session.");
+        LOGGER.info("Inserting credit card [" + cct.getCreditCardNumber() + "] transaction [" + 
+            cct.getTransactionNumber() + "] context into session.");
 		String dateTimeFormatted = LocalDateTime.ofInstant(
 			Instant.ofEpochMilli(cct.getTimestamp()), ZoneId.systemDefault()).format(DATE_TIME_FORMAT);
 		LOGGER.info( "\tCC Transaction Time: " + dateTimeFormatted);
-		long advanceTime = cct.getTimestamp() - pseudoClock.getCurrentTime();
+        long advanceTime = cct.getTimestamp() - pseudoClock.getCurrentTime();
+        
 		if (advanceTime > 0) {
 			long tSec = advanceTime/1000;
 			LOGGER.info("\tAdvancing the PseudoClock with " + advanceTime + " milliseconds (" + tSec + "sec)" );
@@ -189,10 +198,26 @@ public class Main {
 		} else {
 			// Print a warning when we don't need to advance the clock. This usually means that the events are entering the system in the
 			// incorrect order.
-			LOGGER.warn("Not advancing time. CreditCardTransaction timestamp is '" + cct.getTimestamp() + "', PseudoClock timestamp is '"
-					+ pseudoClock.getCurrentTime() + "'.");
-		}
+            LOGGER.warn("Not advancing time. CreditCardTransaction timestamp is '" +
+             cct.getTimestamp() + "', PseudoClock timestamp is '" + pseudoClock.getCurrentTime() + "'.");
+        }
+        
 		return factHandle;
 	}
+
+    private static void invokeCase(PotentialFraudFact potentialFraudFact) {
+        vertx.<String>executeBlocking(future -> {
+            try {
+                CaseMgmt caseMgmt = new CaseMgmt();
+                caseMgmt.invokeCase(potentialFraudFact);
+            } catch (Exception e) {
+                LOGGER.error("Business central not yet ready...");
+            }
+        }, res -> {
+            if (res.succeeded()) {
+                LOGGER.info(res.toString());
+            }
+        });
+    }
 
 }
