@@ -24,5 +24,8 @@ This apps expects the following components running on an Openshift Cluster:
 * Events Emitter (Python App) 
  * https://github.com/snandakumar87/eventEmitterCreditTransactions 
  * Use Python 3.6 S2I Builder Image 
+* Sonatype Nexus Repo Manager
+ * Provision using https://github.com/redhat-gpte-devopsautomation/ansible-operator-roles.git
+ * Remember to enable anonymous access o nexus to allow BC to deploy kjars with no auth
 * Kafdrop (optional)
  * use this descriptors to deploy on Openshift: https://github.com/geoallenrh/rvr/blob/master/deployment/ 
