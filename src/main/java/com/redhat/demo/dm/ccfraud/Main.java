@@ -45,24 +45,10 @@ public class Main {
     private static CreditCardTransactionRepository cctRepository = new InMemoryCreditCardTransactionRepository();
 
     public static void main(String args[]) {
-        String groupId = System.getProperty("rulesGroupId", "org.acme");
-        String artifactId = System.getProperty("rulesArtifactId", "rules");
-        String releaseVersion = System.getProperty("rulesReleaseVersion", "1.0.0-SNAPSHOT");
-        String kieScannerInterval = System.getProperty("kieScannerInterval", "10000");
-
+		// Load the Drools KIE-Container.
         KieServices kieServices = KieServices.Factory.get();
-        ReleaseId releaseId = kieServices.newReleaseId(groupId, artifactId, releaseVersion);
-
-        LOGGER.info(" ===>>> Initialize kScanner and configure to pull rules artifact every {}ms <<<===", kieScannerInterval);
-        LOGGER.info("\t maven artifact GAV: [ {}, {}, {} ]", groupId, artifactId, releaseId);
-        kContainer = kieServices.newKieContainer( releaseId );
-        KieScanner kScanner = kieServices.newKieScanner( kContainer );
+        kContainer = kieServices.getKieClasspathContainer();
         
-        // Start the KieScanner polling the Maven repository every 10 seconds
-        kScanner.start( Long.valueOf(kieScannerInterval) );
-
-        // Load the Drools KIE-Container.
-        // kieContainer = kieServices.newKieClasspathContainer();
         Main creditCardFraudVerticle = new Main();
         creditCardFraudVerticle.exampleCreateConsumerJava(vertx);
     }
