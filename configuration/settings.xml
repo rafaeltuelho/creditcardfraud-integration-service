@@ -278,13 +278,15 @@
             <repository>
                 <id>maven-releases</id>
                 <name>maven-releases</name>
-                <url>${env.NEXUS_REPO}/repository/maven-releases/</url>
+                <!-- url>${env.NEXUS_REPO}/repository/maven-releases/</url -->
+                <url>http://nexus:8081/repository/maven-releases/</url>
                 <!-- url>http://nexus-unsecure-cat-demo.apps.cluster-catcep-c228.catcep-c228.example.opentlc.com/repository/maven-releases/</url -->
             </repository>
             <repository>
                 <id>maven-snapshots</id>
                 <name>maven-snapshots</name>
-                <url>${env.NEXUS_REPO}/repository/maven-snapshots/</url>
+                <!-- url>${env.NEXUS_REPO}/repository/maven-snapshots/</url -->
+                <url>http://nexus:8081/repository/maven-snapshots/</url>
                 <!-- url>http://nexus-unsecure-cat-demo.apps.cluster-catcep-c228.catcep-c228.example.opentlc.com/repository/maven-snapshots/</url -->
             </repository>
         </repositories>
