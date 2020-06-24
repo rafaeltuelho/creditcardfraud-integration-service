@@ -52,12 +52,13 @@ public class Main {
 
         KieServices kieServices = KieServices.Factory.get();
         ReleaseId releaseId = kieServices.newReleaseId(groupId, artifactId, releaseVersion);
+
+        LOGGER.info(" ===>>> Initialize kScanner and configure to pull rules artifact every {}ms <<<===", kieScannerInterval);
+        LOGGER.info("\t maven artifact GAV: [ {}, {}, {} ]", groupId, artifactId, releaseId);
         kContainer = kieServices.newKieContainer( releaseId );
         KieScanner kScanner = kieServices.newKieScanner( kContainer );
         
         // Start the KieScanner polling the Maven repository every 10 seconds
-        LOGGER.info(" ===>>> Initialize kScanner and configure to pull rules artifact every {}ms <<<===", kieScannerInterval);
-        LOGGER.info("\t maven artifact GAV: [ {}, {}, {} ]", groupId, artifactId, releaseId);
         kScanner.start( Long.valueOf(kieScannerInterval) );
 
         // Load the Drools KIE-Container.
