@@ -117,7 +117,7 @@ public class Main {
             "' transactions for creditcard: '" + ccTransaction.getCreditCardNumber() + "'.");
 
         //will get automatically upgraded by the KieScanner if new version is found in the Maven Repo
-        KieSession kieSession = kContainer.newKieSession();
+        KieSession kieSession = kContainer.newKieSession("cdfd-session");
         LOGGER.info("Get the kie session [ {} ]", kieSession.getIdentifier());
 
         // Insert transaction history/context.
