@@ -45,10 +45,6 @@ public class Main {
     private static CreditCardTransactionRepository cctRepository = new InMemoryCreditCardTransactionRepository();
 
     public static void main(String args[]) {
-		// Load the Drools KIE-Container.
-        KieServices kieServices = KieServices.Factory.get();
-        kContainer = kieServices.getKieClasspathContainer();
-        
         Main creditCardFraudVerticle = new Main();
         creditCardFraudVerticle.exampleCreateConsumerJava(vertx);
     }
@@ -89,7 +85,7 @@ public class Main {
         });
     }
 
-    private static void processTransaction(CreditCardTransaction ccTransaction) {
+    private void processTransaction(CreditCardTransaction ccTransaction) {
         // Retrieve all transactions for this account
         Collection<CreditCardTransaction> ccTransactions = cctRepository
                 .getCreditCardTransactionsForCC(ccTransaction.getCreditCardNumber());
@@ -103,7 +99,7 @@ public class Main {
             "' transactions for creditcard: '" + ccTransaction.getCreditCardNumber() + "'.");
 
         //will get automatically upgraded by the KieScanner if new version is found in the Maven Repo
-        KieSession kieSession = kContainer.newKieSession("cdfd-session");
+        KieSession kieSession = createKieSession("cdfd-session");
         LOGGER.info("Get the kie session [ {} ]", kieSession.getIdentifier());
 
         // Insert transaction history/context.
@@ -135,6 +131,26 @@ public class Main {
 
         // Dispose the session to free up the resources.
         kieSession.dispose();
+    }
+
+    private KieContainer createKieContainer(){
+        KieServices kieServices = KieServices.Factory.get();
+        if (kContainer == null){
+            kContainer = kieServices.getKieClasspathContainer();
+        }
+
+        return kContainer;
+    }
+
+    private KieSession createKieSession(String sessionName) {
+        kContainer = createKieContainer();
+        KieSession kSession = kContainer.newKieSession(sessionName);
+
+        if (kSession == null){
+            LOGGER.error("Unknown Session with name '"+sessionName+"'");
+        }
+
+        return kSession;
     }
 
 	/**
