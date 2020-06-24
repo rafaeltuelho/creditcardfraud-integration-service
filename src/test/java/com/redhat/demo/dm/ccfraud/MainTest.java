@@ -47,7 +47,7 @@ public class MainTest {
 
 	private CreditCardTransactionRepository cctRepository = new InMemoryCreditCardTransactionRepository();
 
-	@Test
+	// @Test
 	public void mainTest() {
 		// Load the Drools KIE-Container.
 		// kieContainer = KIE_SERVICES.getKieClasspathContainer();
@@ -67,6 +67,28 @@ public class MainTest {
         // Start the KieScanner polling the Maven repository every 10 seconds
         kScanner.start( Long.valueOf(kieScannerInterval) );
 
+		long transactionTime = 0L;
+		try {
+			transactionTime = DATE_FORMAT.parse("20180629:094000000").getTime();
+		} catch (ParseException pe) {
+			throw new RuntimeException(pe);
+		}
+
+		// Define the new incoming credit-card transaction. In an actual system, this event would come a Kafka stream or a Vert.x EventBus
+		// event.
+		CreditCardTransaction incomingTransaction = new CreditCardTransaction(
+			100, 12345, new BigDecimal(10.99), transactionTime, new Terminal(1, CountryCode.US));
+
+		// Process the incoming transaction.
+		processTransaction(incomingTransaction);
+	}
+
+	@Test
+	public void mainNoKieScannerTest() {
+		// Load the Drools KIE-Container.
+        KieServices kieServices = KieServices.Factory.get();
+        kContainer = kieServices.getKieClasspathContainer();
+        
 		long transactionTime = 0L;
 		try {
 			transactionTime = DATE_FORMAT.parse("20180629:094000000").getTime();
